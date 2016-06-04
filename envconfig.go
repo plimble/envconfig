@@ -7,6 +7,7 @@ package envconfig
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -67,14 +68,19 @@ func Process(prefix string, spec interface{}) error {
 		if alt != "" {
 			fieldName = alt
 		}
-		key := strings.ToUpper(fmt.Sprintf("%s_%s", prefix, fieldName))
+
+		if prefix != "" {
+			prefix = prefix + "_"
+		}
+
+		key := strings.ToUpper(prefix + fieldName)
 		// `os.Getenv` cannot differentiate between an explicitly set empty value
 		// and an unset value. `os.LookupEnv` is preferred to `syscall.Getenv`,
 		// but it is only available in go1.5 or newer.
-		value, ok := syscall.Getenv(key)
+		value, ok := os.LookupEnv(key)
 		if !ok && alt != "" {
-			key := strings.ToUpper(fieldName)
-			value, ok = syscall.Getenv(key)
+			keyUpper := strings.ToUpper(fieldName)
+			value, ok = syscall.Getenv(keyUpper)
 		}
 
 		def := typeOfSpec.Field(i).Tag.Get("default")
