@@ -49,6 +49,11 @@ func Process(prefix string, spec interface{}) error {
 		return ErrInvalidSpecification
 	}
 	typeOfSpec := s.Type()
+
+	if prefix != "" {
+		prefix = prefix + "_"
+	}
+
 	for i := 0; i < s.NumField(); i++ {
 		f := s.Field(i)
 		if !f.CanSet() || typeOfSpec.Field(i).Tag.Get("ignored") == "true" {
@@ -69,10 +74,6 @@ func Process(prefix string, spec interface{}) error {
 			fieldName = alt
 		}
 
-		if prefix != "" {
-			prefix = prefix + "_"
-		}
-
 		key := strings.ToUpper(prefix + fieldName)
 		// `os.Getenv` cannot differentiate between an explicitly set empty value
 		// and an unset value. `os.LookupEnv` is preferred to `syscall.Getenv`,
@@ -81,6 +82,11 @@ func Process(prefix string, spec interface{}) error {
 		if !ok && alt != "" {
 			keyUpper := strings.ToUpper(fieldName)
 			value, ok = syscall.Getenv(keyUpper)
+		}
+
+		if !ok {
+			key = strings.ToUpper(prefix + CamelToSnake(fieldName))
+			value, ok = os.LookupEnv(key)
 		}
 
 		def := typeOfSpec.Field(i).Tag.Get("default")
